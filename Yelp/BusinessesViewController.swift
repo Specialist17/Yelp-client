@@ -16,6 +16,7 @@ class BusinessesViewController: UIViewController, UITableViewDelegate, UITableVi
     var filteredData: [Business]!
     var searchMode: Bool! = false
     var searchBar: UISearchBar!
+    var isMoreDataLoading = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -31,18 +32,8 @@ class BusinessesViewController: UIViewController, UITableViewDelegate, UITableVi
         
         navigationItem.titleView = searchBar
         
-        Business.searchWithTerm("Coffee", completion: { (businesses: [Business]!, error: NSError!) -> Void in
-            self.businesses = businesses
-            self.filteredData = self.businesses
+        searchData()
         
-            self.yelpTable.reloadData()
-            
-            for business in businesses {
-                print(business.name!)
-                print(business.address!)
-            }
-        })
-
 /* Example of Yelp search with more search options specified
         Business.searchWithTerm("Restaurants", sort: .Distance, categories: ["asianfusion", "burgers"], deals: true) { (businesses: [Business]!, error: NSError!) -> Void in
             self.businesses = businesses
@@ -62,6 +53,20 @@ class BusinessesViewController: UIViewController, UITableViewDelegate, UITableVi
 //        })
 //    }
     
+    func searchData() {
+        Business.searchWithTerm("Coffee", completion: { (businesses: [Business]!, error: NSError!) -> Void in
+            self.businesses = businesses
+            self.filteredData = self.businesses
+            
+            self.yelpTable.reloadData()
+            
+            for business in businesses {
+                print(business.name!)
+                print(business.address!)
+            }
+        })
+    }
+    
     // This method updates filteredData based on the text in the Search Box
     func searchBar(searchBar: UISearchBar, textDidChange searchText: String) {
         // When there is no text, filteredData is the same as the original data
@@ -74,8 +79,6 @@ class BusinessesViewController: UIViewController, UITableViewDelegate, UITableVi
             
             // The user has entered text into the search box
             // Use the filter method to iterate over all items in the data array
-            // For each item, return true if the item should be included and false if the
-            // item should NOT be included
             filteredData = businesses.filter({$0.name?.rangeOfString(searchText, options: .CaseInsensitiveSearch) != nil})
         }
         yelpTable.reloadData()
@@ -105,5 +108,18 @@ class BusinessesViewController: UIViewController, UITableViewDelegate, UITableVi
         
         
         return cell
+    }
+    
+    func scrollViewDidScroll(scrollView: UIScrollView) {
+        if !isMoreDataLoading {
+            isMoreDataLoading = true
+            
+            let scrollViewContentHeight = yelpTable.contentSize.height
+            let scrollOffsetThreshold = scrollViewContentHeight - yelpTable.bounds.size.height
+            
+            if scrollView.contentOffset.y > scrollOffsetThreshold && yelpTable.dragging {
+                searchData()
+            }
+        }
     }
 }
